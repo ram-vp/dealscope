@@ -31,6 +31,7 @@ from src.data.loaders import load_companies, load_deals
 from src.data.paths import FRONTEND_DATA_DIR
 from src.logic.scoring import score_companies, METRICS, PERCENTILE_COLUMNS, LEVERAGE_METRIC
 from src.logic.valuation import valuation_range
+from src.data.export_checks import validate_export
 from src.data.sanitize import sanitize
 from compute_filter_bands import main as compute_filter_bands
 from compute_sector_bands import main as compute_sector_bands
@@ -132,19 +133,6 @@ def clean(value):
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Recompute filter-bands.json from the current universe every time this
-    # export runs, so band edges never silently drift out of date the way the
-    # frontend's old hardcoded thresholds did -- not a separate manual step.
-    compute_filter_bands()
-    print()
-
-    # Per-sector percentile bands, for the natural-language screener's
-    # qualitative words ("high margin", "low debt"). Regenerated alongside
-    # filter-bands.json for the same reason: an artifact the UI reads must
-    # never be allowed to drift behind the data it describes.
-    compute_sector_bands()
-    print()
-
     # Optional override, same DEALSCOPE_INPUT_FILE convention enrich_dataset.py
     # already uses -- lets quarterly_refresh.yml regenerate the frontend export
     # from a NEW candidate snapshot (still awaiting human review) rather than
@@ -219,17 +207,6 @@ def main():
         if narrative and ticker:
             narratives[ticker] = narrative
 
-    companies_path = OUT_DIR / "companies.json"
-    with open(companies_path, "w") as f:
-        json.dump(company_records, f, ensure_ascii=False)
-    narratives_path = OUT_DIR / "narratives.json"
-    with open(narratives_path, "w") as f:
-        json.dump(narratives, f, ensure_ascii=False)
-    print(f"Wrote {len(company_records)} companies -> {companies_path}")
-    print(f"Wrote {len(narratives)} narratives -> {narratives_path}")
-    print(f"  about available for {sum(1 for n in narratives.values() if n.get('about'))} / {len(company_records)}")
-    print(f"  why_this_score available for {sum(1 for n in narratives.values() if n.get('why_this_score'))} / {len(company_records)}")
-
     deals = load_deals()
     deal_records = []
     for _, d in deals.iterrows():
@@ -245,9 +222,30 @@ def main():
             "report_year": clean(d["report_year"]),
         })
 
+    # Before the first write: a bad export must leave every file as it was.
+    validate_export(company_records, deal_records)
+
+    # Band edges regenerate on every export, from the same cleaned frame, so
+    # neither artifact can drift behind (or disagree with) the data it describes.
+    compute_filter_bands(companies)
+    print()
+    compute_sector_bands(companies)
+    print()
+
+    companies_path = OUT_DIR / "companies.json"
+    with open(companies_path, "w") as f:
+        json.dump(company_records, f, ensure_ascii=False, allow_nan=False)
+    narratives_path = OUT_DIR / "narratives.json"
+    with open(narratives_path, "w") as f:
+        json.dump(narratives, f, ensure_ascii=False)
+    print(f"Wrote {len(company_records)} companies -> {companies_path}")
+    print(f"Wrote {len(narratives)} narratives -> {narratives_path}")
+    print(f"  about available for {sum(1 for n in narratives.values() if n.get('about'))} / {len(company_records)}")
+    print(f"  why_this_score available for {sum(1 for n in narratives.values() if n.get('why_this_score'))} / {len(company_records)}")
+
     deals_path = OUT_DIR / "deals.json"
     with open(deals_path, "w") as f:
-        json.dump(deal_records, f, ensure_ascii=False)
+        json.dump(deal_records, f, ensure_ascii=False, allow_nan=False)
     print(f"Wrote {len(deal_records)} deals -> {deals_path}")
 
     write_dataset_meta(valued, company_records, deal_count=len(deal_records))

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .derive import derive_fields
 from .paths import companies_csv_path, deals_csv_path
 from .schema import (
     ALL_BUCKETS,
@@ -45,6 +46,9 @@ def load_companies(path=None):
     # row is currently "ok"; filtering defensively means a future non-"ok" row
     # (e.g. delisted) can't silently corrupt the universe.
     df = df[df["status"] == "ok"].copy()
+
+    # Placeholder zeros, contradicting margins and frozen P/Es: see derive.py.
+    df = derive_fields(df)
 
     df["ey_bucket"] = [
         classify_sector(sector, industry)

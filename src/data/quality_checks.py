@@ -100,7 +100,17 @@ CRITICAL_CHECKS = {
     "negative_current_ratio",
     "negative_quick_ratio",
     "zero_margin_nonzero_ebitda",
+    "placeholder_zero_margin",
 }
+
+
+def placeholder_margin_mask(df):
+    """margin == 0 with no EBITDA: Yahoo's "not applicable", not a real zero."""
+    if not {"ebitda", "ebitda_margin_pct"} <= set(df.columns):
+        return pd.Series(False, index=df.index)
+    margin = pd.to_numeric(df["ebitda_margin_pct"], errors="coerce")
+    ebitda = pd.to_numeric(df["ebitda"], errors="coerce")
+    return margin.eq(0) & ebitda.isna()
 
 
 def _flag(flags, row, check, detail):
@@ -181,6 +191,12 @@ def check_cross_field_consistency(df):
                 f"ebitda_margin_pct={stored_margin:,.4f}% (~0) but ebitda={ebitda:,.0f} "
                 f"is materially non-zero -- mathematically impossible for any finite revenue "
                 f"(revenue={'missing' if pd.isna(revenue) else f'{revenue:,.0f}'})",
+            )
+
+        if "ebitda" in df.columns and pd.notna(stored_margin) and stored_margin == 0 and pd.isna(ebitda):
+            _flag(
+                flags, row, "placeholder_zero_margin",
+                "ebitda_margin_pct=0 with no ebitda is the feed's 'not applicable', not a real zero",
             )
 
         # quick_ratio can never exceed current_ratio: quick = (current assets

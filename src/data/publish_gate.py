@@ -28,6 +28,7 @@ import pandas as pd
 if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from src.data.derive import drop_placeholder_margins
 from src.data.quality_checks import CRITICAL_CHECKS, run_all_checks
 
 MAX_TICKER_LOSS_SHARE = 0.01
@@ -162,6 +163,13 @@ def _check_freshness(cand, live, res):
 
 def evaluate_gate(candidate, live, repairs=None):
     res = GateResult(passed=False)
+    try:
+        # A live file from before placeholders were dropped would make an honest
+        # candidate look like a coverage collapse and block it forever.
+        live = drop_placeholder_margins(live)
+    except Exception as exc:  # noqa: BLE001 - fail closed
+        res.failures.append(f"internal: could not normalise the live dataset: {exc!r}")
+        return res
     steps = [
         ("structure", lambda: _check_structure(candidate, live, res)),
         ("coverage", lambda: _check_coverage(candidate, live, res)),
