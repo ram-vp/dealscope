@@ -19,8 +19,10 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from refresh_daily_prices import last_trading_session, rescale_price_to_book
 
-# The fundamentals script imports yfinance at module level; CI doesn't install it.
-sys.modules.setdefault("yfinance", types.ModuleType("yfinance"))
+# The fundamentals script imports yfinance, and an archived helper that needs
+# yfinance's dependencies, at module level. CI installs neither; both are faked.
+sys.modules["yfinance"] = types.ModuleType("yfinance")
+sys.modules["enrich_v2"] = types.SimpleNamespace(fetch_roce=lambda _s: ("", ""))
 import refresh_quarterly_fundamentals as quarterly
 
 failures = 0
