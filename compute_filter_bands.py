@@ -101,8 +101,10 @@ def compute_band(series, decimals):
     }
 
 
-def main():
-    companies = load_companies()
+def main(companies=None):
+    # The export passes its cleaned frame, so bands describe exactly what ships.
+    if companies is None:
+        companies = load_companies()
 
     fields_out = {}
     comparison_rows = []

@@ -1,4 +1,4 @@
-"""Quarterly fundamentals refresh.
+"""Fundamentals refresh (runs monthly; companies report quarterly).
 
 Re-pulls the numbers that actually change when companies report — revenue,
 EBITDA, margins, ROCE, debt, and the related income-statement / ratio fields —
@@ -47,6 +47,8 @@ _STAMP = datetime.now().strftime("%Y-%m-%d")
 OUTPUT_CSV = OUTPUT_DIR / f"dealscope_{_STAMP}.csv"
 
 SLEEP_BETWEEN = 1.2
+# Above this share of tickers returning nothing, the pull is broken: go red.
+FAILURE_RATE_LIMIT = 0.25
 BATCH_SIZE = 100
 MAX_RETRIES = 2
 
@@ -72,6 +74,8 @@ INFO_CORE = {
     "free_cash_flow": ("freeCashflow", False),
     "price_to_book": ("priceToBook", False),
     "trailing_pe": ("trailingPE", False),
+    # Published as promoter_holding_pct. Was never refreshed after July 2026.
+    "insider_holding_pct": ("heldPercentInsiders", True),
 }
 
 # Never write these from a USD-reported yfinance payload.
@@ -134,13 +138,18 @@ def fetch_fundamentals(symbol):
     for column, (info_key, as_pct) in INFO_CORE.items():
         raw = info.get(info_key)
         value = pct(raw) if as_pct else raw
-        if value is None:
+        if value is None or isinstance(value, str):  # Yahoo sends "Infinity" as text
             continue
         if isinstance(value, float) and (pd.isna(value) or value in (float("inf"), float("-inf"))):
             continue
         if not currency_ok and column in CURRENCY_SENSITIVE:
             continue
         out[column] = value
+
+    # margin 0 with no EBITDA is Yahoo's "not applicable" (banks). The one case
+    # where a missing value must replace last-good: the last-good was this fake zero.
+    if out.get("ebitda_margin_pct") == 0 and info.get("ebitda") is None:
+        out["ebitda_margin_pct"] = float("nan")
 
     # Impossible margin is a data error, not a real company. Keep last good.
     margin = out.get("ebitda_margin_pct")
@@ -173,7 +182,10 @@ def fetch_fundamentals(symbol):
             pass
 
     # Stamp as_of_date only when at least one core P&L / leverage field landed.
-    core_landed = any(k in out for k in ("revenue", "ebitda", "total_debt", "return_on_capital_employed_pct", "ebitda_margin_pct"))
+    core_landed = any(
+        k in out and not pd.isna(out[k])
+        for k in ("revenue", "ebitda", "total_debt", "return_on_capital_employed_pct", "ebitda_margin_pct")
+    )
     if core_landed:
         out["as_of_date"] = date.today().isoformat()
 
@@ -187,6 +199,15 @@ def apply_fields(frame, symbol, fields):
         if column not in frame.columns:
             frame[column] = pd.NA
         frame.loc[mask, column] = value
+
+
+def is_landed(fields):
+    """Yahoo answers a throttled request with an empty dict, not an exception."""
+    return "as_of_date" in fields
+
+
+def pull_is_broken(failed, attempted):
+    return attempted <= 0 or failed / attempted > FAILURE_RATE_LIMIT
 
 
 def main():
@@ -208,9 +229,13 @@ def main():
         print(f"[{i}/{len(symbols)}] {symbol}.NS ...", end=" ", flush=True)
         try:
             fields = fetch_fundamentals(symbol)
-            apply_fields(merged, symbol, fields)
-            updated += 1
-            print("OK")
+            if is_landed(fields):
+                apply_fields(merged, symbol, fields)
+                updated += 1
+                print("OK")
+            else:
+                failed += 1
+                print("EMPTY: no fundamentals returned; keeping last good")
         except Exception as exc:
             failed += 1
             print(f"ERROR: {str(exc)[:80]}")
@@ -221,16 +246,15 @@ def main():
 
         time.sleep(SLEEP_BETWEEN)
 
+    attempted = updated + failed
+    if pull_is_broken(failed, attempted):
+        print(f"::error::Fundamentals pull is broken: {failed}/{attempted} tickers returned nothing "
+              f"(limit {FAILURE_RATE_LIMIT:.0%}). Nothing will be promoted.")
+        sys.exit(1)
+
     merged.to_csv(OUTPUT_CSV, index=False)
     print(f"\nDone: {updated} updated, {failed} failed of {len(symbols)} attempted; "
           f"{len(merged)} rows written -> {OUTPUT_CSV}")
-
-    attempted = updated + failed
-    if attempted and failed / attempted > 0.25:
-        print("WARNING: more than 25% of tickers failed. Snapshot is for review only "
-              "and must not be promoted until the pull is healthy.")
-        # Still write the snapshot — promotion, not this job, publishes.
-        sys.exit(0)
 
     if limit:
         print("TEST MODE: snapshot written for pipeline smoke-test. Do not promote a limited run.")

@@ -28,7 +28,13 @@ fi
 
 for i in $(seq 1 "$ATTEMPTS"); do
   MERGEABLE=$(gh pr view "$PR" --json mergeable --jq .mergeable || echo "UNKNOWN")
-  if [[ "$MERGEABLE" == "MERGEABLE" ]]; then
+  if [[ "$MERGEABLE" == "CONFLICTING" ]]; then
+    echo "::error::PR #$PR conflicts with main"
+    exit 1
+  fi
+  # GitHub can report UNKNOWN for minutes. The squash below is the real test
+  # (set -e stops on a conflict), so don't strand good data waiting for it.
+  if [[ "$MERGEABLE" == "MERGEABLE" || "$i" -ge 4 ]]; then
     git fetch origin main --quiet
     git checkout -q -B "__squash_merge_main" origin/main
     git fetch origin "$HEAD" --quiet
@@ -43,7 +49,14 @@ for i in $(seq 1 "$ATTEMPTS"); do
       exit 0
     fi
     git commit -m "$TITLE"
-    git push origin "HEAD:main"
+    if ! git push origin "HEAD:main"; then
+      if [[ "$i" -eq "$ATTEMPTS" ]]; then
+        echo "::error::Could not push to main after ${ATTEMPTS} attempts"
+        exit 1
+      fi
+      echo "main moved during the merge; retrying"
+      continue
+    fi
     # Close PR as merged-equivalent and delete head branch
     gh pr close "$PR" --comment "Squash-merged onto main as Ram VP (commit $(git rev-parse --short HEAD))." || true
     git push origin --delete "$HEAD" || true

@@ -17,6 +17,11 @@ BRANCH=$2
 COMMIT_MSG=$3
 SRC_DIR="${GITHUB_WORKSPACE:-.}/data/frontend"
 FILES=(companies.json narratives.json deals.json filter-bands.json sector-bands.json dataset-meta.json)
+# PUBLISH_ONLY lets the news job ship news.json without re-publishing (and
+# possibly rolling back) the numeric files.
+if [[ -n "${PUBLISH_ONLY:-}" ]]; then
+  read -r -a FILES <<< "$PUBLISH_ONLY"
+fi
 
 if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
   echo "::error::Refusing to push directly to $BRANCH. Use a price-sync/* or promote/* branch."

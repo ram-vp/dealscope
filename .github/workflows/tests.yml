@@ -2,9 +2,15 @@ name: Tests
 
 # Scoring, refresh guards, and live-pointer checks. No data is published.
 on:
+  # Filtered here, not with a job-level `if`: the bot merges and deletes its
+  # branch within seconds, and a run created for it died at startup (a red
+  # "workflow file issue" on every daily refresh).
   pull_request:
+    paths-ignore:
+      - 'data/frontend/**'
+      - 'data/enriched/**'
   push:
-    branches: [main]
+    branches: [main, pro-upgrade]
   workflow_dispatch:
 
 permissions:
@@ -25,7 +31,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install test dependencies
-        run: pip install pandas==2.2.2
+        run: pip install pandas==2.2.2 requests==2.34.2
 
       - name: Lint workflows and shell scripts
         run: |

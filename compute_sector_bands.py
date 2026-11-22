@@ -98,8 +98,10 @@ def quartiles(series, decimals):
     return {"p25": r(p25), "p50": r(p50), "p75": r(p75), "sample_size": n}
 
 
-def main():
-    companies = load_companies()
+def main(companies=None):
+    # The export passes its cleaned frame, so bands describe exactly what ships.
+    if companies is None:
+        companies = load_companies()
     companies = companies.copy()
     companies["sector_display"] = [sector_display_name(b) for b in companies["sector_v2"]]
 

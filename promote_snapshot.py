@@ -35,6 +35,7 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from src.data.derive import drop_placeholder_margins  # noqa: E402
 from src.data.loaders import load_companies  # noqa: E402
 from src.data.paths import (  # noqa: E402
     ENRICHED_DIR,
@@ -77,7 +78,10 @@ def merge_live_prices(snapshot: pd.DataFrame, live: pd.DataFrame) -> pd.DataFram
 
 def prepare_candidate(snapshot: pd.DataFrame, live: pd.DataFrame):
     """Pure decision step: returns (cleaned_frame, repairs, gate_result)."""
-    merged = merge_live_prices(snapshot, live)
+    # Before sanitize, on both sides: not a repair (it would trip the repair-share
+    # limit), and a placeholder is never a valid last-good fallback.
+    merged = drop_placeholder_margins(merge_live_prices(snapshot, live))
+    live = drop_placeholder_margins(live)
     cleaned, repairs = sanitize(merged, live=live)
     gate = evaluate_gate(cleaned, live, repairs)
     return cleaned, repairs, gate

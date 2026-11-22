@@ -17,7 +17,10 @@ name: Quarterly data refresh
 
 on:
   schedule:
-    - cron: '0 3 1 1,4,7,10 *'  # 03:00 UTC, 1st of Jan / Apr / Jul / Oct
+    # Monthly on the 16th. The old slot (1st of Jan/Apr/Jul/Oct) ran right after
+    # a quarter closed and before anyone had reported it, so the site was always
+    # one quarter behind: results are due by 14 Feb, 30 May, 14 Aug and 14 Nov.
+    - cron: '23 3 16 * *'
   workflow_dispatch:
     inputs:
       limit:
@@ -59,7 +62,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install pandas==2.2.2 pyarrow yfinance
+        run: pip install pandas==2.2.2 pyarrow yfinance==1.5.1
 
       - name: Resolve current live dataset path
         id: resolve
