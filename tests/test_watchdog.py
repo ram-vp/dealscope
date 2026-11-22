@@ -80,9 +80,15 @@ check("fundamentals 109 days old -> dispatch quarterly", any(a.get("workflow") =
 s["runs"]["quarterly"] = [run(2, 24, conclusion="failure")]
 r = watchdog.assess(s, NOW)
 check("quarterly tried yesterday -> wait, but flag it", kinds(r, "dispatch") == [] and r["problems"], str(r))
-s = healthy(); s["meta"]["fundamentals_as_of"] = "2026-07-11"
+s = healthy(); s["meta"]["fundamentals_as_of"] = "2026-09-01"
 r = watchdog.assess(s, NOW)
-check("88 days old is still fine", kinds(r, "dispatch") == [] and r["problems"] == [], str(r))
+check("36 days old is fine on a monthly cadence", kinds(r, "dispatch") == [] and r["problems"] == [], str(r))
+s = healthy(); s["meta"]["fundamentals_as_of"] = "2026-08-27"
+r = watchdog.assess(s, NOW)
+check("41 days old -> dispatch", any(a.get("workflow") == "quarterly_refresh.yml" for a in kinds(r, "dispatch")), str(r))
+s = healthy(); s["runs"]["daily"] = [run(8, 3, conclusion="timed_out")]
+r = watchdog.assess(s, NOW)
+check("a timed-out run is retried", [a["run_id"] for a in kinds(r, "rerun")] == [8], str(r))
 
 print("=== Failed runs are retried once ===")
 s = healthy(); s["runs"]["daily"] = [run(7, 3, conclusion="failure", attempt=1)]

@@ -4,9 +4,10 @@ debt, promoter pledge, etc. only change when a company reports (quarterly),
 so re-pulling those daily would burn yfinance free-tier quota for numbers
 that haven't moved and risk getting the pipeline's IP throttled or blocked.
 
-This script only overwrites market_cap and a same-day share price snapshot,
-on top of the current committed dataset (whatever quarterly_refresh.yml last
-merged) -- every other field passes through untouched.
+This script overwrites market_cap, stamps it with the trading session it
+belongs to, and moves price_to_book with it (book value only changes when a
+company reports). Every other field passes through untouched; trailing P/E
+follows automatically because src/data/derive.py computes it from market cap.
 
 Run from the repo root:
     python3 refresh_daily_prices.py
@@ -24,7 +25,6 @@ refresh, which always requires human review) -- see
 import math
 import sys
 import time
-from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -140,6 +140,40 @@ def fetch_price_snapshot(symbol, ticker_factory=None, sleep=time.sleep):
     return None, None
 
 
+def last_trading_session(history_factory=None, sleep=time.sleep):
+    """ISO date of the most recent NSE session, from the Nifty's own history.
+
+    Stamping date.today() published "Prices as of" dates on which the market
+    was shut (20 Oct and 10 Nov 2026). Raises if it can't be established: an
+    invented date is worse than a red run the watchdog retries.
+    """
+    if history_factory is None:
+        import yfinance as yf
+
+        def history_factory():
+            return yf.Ticker("^NSEI").history(period="15d")
+
+    last_error = "no sessions returned"
+    for attempt in range(3):
+        try:
+            history = history_factory()
+            closes = history["Close"].dropna()
+            if len(closes):
+                return closes.index[-1].date().isoformat()
+        except Exception as exc:  # noqa: BLE001 - retried, then raised below
+            last_error = repr(exc)
+        if attempt < 2:
+            sleep(5 * (attempt + 1))
+    raise RuntimeError(f"cannot determine the last NSE trading session: {last_error}")
+
+
+def rescale_price_to_book(price_to_book, previous_cap, new_cap):
+    """Same book value, new price. Unchanged when either cap is unusable."""
+    if pd.isna(price_to_book) or not is_positive_number(previous_cap) or not is_positive_number(new_cap):
+        return price_to_book
+    return price_to_book * float(new_cap) / float(previous_cap)
+
+
 def main():
     limit = None
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
@@ -153,7 +187,7 @@ def main():
         print(f"TEST MODE: limiting to first {limit} symbols")
 
     updated, failed, skipped = 0, 0, 0
-    today_iso = date.today().isoformat()
+    session_iso = last_trading_session()
     if "market_cap_as_of" not in df.columns:
         df["market_cap_as_of"] = pd.NA
 
@@ -165,7 +199,10 @@ def main():
         decision = classify_price_update(previous, market_cap)
         if decision == "update":
             df.loc[row_mask, "market_cap"] = market_cap
-            df.loc[row_mask, "market_cap_as_of"] = today_iso
+            df.loc[row_mask, "market_cap_as_of"] = session_iso
+            if "price_to_book" in df.columns:
+                df.loc[row_mask, "price_to_book"] = rescale_price_to_book(
+                    df.loc[row_mask, "price_to_book"].iloc[0], previous, market_cap)
             updated += 1
         elif decision == "fail":
             # Had a real cap yesterday, didn't get a usable one today —

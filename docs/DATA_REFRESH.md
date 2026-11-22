@@ -7,8 +7,9 @@ good data.
 
 | Job | What it refreshes | Cadence | Goes live? |
 |---|---|---|---|
-| Daily price refresh | Market cap | 11:00 UTC weekdays (16:30 IST) | Yes, automatically |
-| Quarterly fundamentals | Revenue, EBITDA, margins, ROCE, debt | 03:00 UTC on the 1st of Jan / Apr / Jul / Oct | Yes, automatically, if the publish gate passes |
+| Daily price refresh | Market cap, P/B, P/E | 11:37 UTC weekdays (17:07 IST) | Yes, automatically |
+| Quarterly fundamentals | Revenue, EBITDA, margins, ROCE, debt, insider holding | 03:23 UTC on the 16th of every month (after each results deadline) | Yes, automatically, if the publish gate passes |
+| News refresh | News, NSE filings, BSE notices (`news.json`) | 04:41 UTC Sundays | Yes, through the same validated promote branch |
 | Pipeline watchdog | Nothing: it repairs the two jobs above | Every 6 hours | Re-runs / dispatches them, opens one health issue |
 
 ## The safety chain
@@ -42,7 +43,7 @@ refresh -> sanitize -> publish gate -> push branch to frontend
    merge automatically and opens an issue. (A merely slow deployment is
    reported but not rolled back.)
 6. **Watchdog** (`.github/scripts/watchdog.py`). Prices more than one weekday
-   behind -> dispatch the daily job. Fundamentals older than 95 days ->
+   behind -> dispatch the daily job. Fundamentals older than 40 days ->
    dispatch the quarterly job. A failed run -> re-run once. A workflow disabled
    by GitHub for inactivity -> enable it. Everything it cannot fix goes into one
    `[DealScope] Pipeline health` issue, closed automatically when healthy.
@@ -55,7 +56,7 @@ different data. Smoke tests (`limit` input) never publish.
 
 `refresh_daily_prices.py` overwrites market cap in the live CSV (NSE listing
 first, BSE listing as a fallback when Yahoo has no NSE market cap), stamps
-`market_cap_as_of` only on rows that actually refreshed, regenerates
+`market_cap_as_of` (the last NSE trading session, not the run date) only on rows that actually refreshed, regenerates
 `dataset-meta.json`, and pushes a `price-sync/<run-id>-<attempt>` branch to
 `dealscope-frontend`, which validates, merges, deploys and canary-checks it.
 

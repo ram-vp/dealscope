@@ -7,7 +7,7 @@ it when everything is healthy again).
 
 Rules, in plain words:
   * Live prices more than one weekday behind -> run the daily refresh.
-  * Fundamentals older than 95 days          -> run the quarterly refresh.
+  * Fundamentals older than 40 days          -> run the quarterly refresh.
   * A scheduled run failed                    -> re-run it once (re-runs are
     safe: branch names include the attempt). Failed twice -> report only.
   * A workflow GitHub disabled for inactivity -> enable it again.
@@ -30,11 +30,12 @@ BACKEND = os.environ.get("GITHUB_REPOSITORY", "ram-vp/dealscope")
 _OWNER = BACKEND.split("/", 1)[0]
 FRONTEND = os.environ.get("FRONTEND_REPO", f"{_OWNER}/dealscope-frontend")
 SITE_URL = "https://dealscope-screener.vercel.app/"
+FAILED_CONCLUSIONS = {"failure", "timed_out", "startup_failure"}
 WORKFLOWS = {"daily": "daily_price_refresh.yml", "quarterly": "quarterly_refresh.yml"}
 ISSUE_TITLE = "[DealScope] Pipeline health"
 
 PRICE_LAG_TRIGGER = 2            # weekdays behind the last completed weekday
-FUNDAMENTALS_MAX_AGE_DAYS = 95   # site goes "stale" at 100
+FUNDAMENTALS_MAX_AGE_DAYS = 40   # monthly pull; site goes "stale" at 100
 COOLDOWN_HOURS = {"daily": 6, "quarterly": 72}
 BRANCH_STUCK_HOURS = 6
 ACTIVE_STATES = {"queued", "in_progress", "waiting", "requested", "pending"}
@@ -92,7 +93,7 @@ def assess(snapshot, now):
     for kind in ("daily", "quarterly"):
         history = newest_first(kind)
         latest = history[0] if history else None
-        if latest and latest.get("status") == "completed" and latest.get("conclusion") == "failure":
+        if latest and latest.get("status") == "completed" and latest.get("conclusion") in FAILED_CONCLUSIONS:
             if int(latest.get("run_attempt") or 1) == 1:
                 actions.append({"type": "rerun", "run_id": latest["id"], "workflow": WORKFLOWS[kind]})
                 rerun_kinds.add(kind)

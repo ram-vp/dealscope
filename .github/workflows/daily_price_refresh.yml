@@ -19,7 +19,8 @@ on:
     # NSE cash market closes 15:30 IST = 10:00 UTC. 11:00 UTC is 16:30 IST —
     # after the close, not at the 09:30 IST open. Weekdays only so a weekend
     # run cannot stamp Saturday/Sunday onto Friday's last price.
-    - cron: '0 11 * * 1-5'
+    # Off the top of the hour: GitHub delayed the 11:00 slot by up to 8 hours.
+    - cron: '37 11 * * 1-5'
   workflow_dispatch:
     inputs:
       limit:
@@ -57,7 +58,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install pandas==2.2.2 yfinance
+        run: pip install pandas==2.2.2 yfinance==1.5.1
 
       - name: Run daily price refresh
         env:

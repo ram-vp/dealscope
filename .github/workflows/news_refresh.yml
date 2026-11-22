@@ -1,0 +1,128 @@
+name: News refresh
+
+# news.json had no job at all: it was built by hand on 20 July 2026 and never
+# changed again. This seeds from the copy the site serves, merges newer items
+# into it, and publishes ONLY that file through the same promote/* path (the
+# frontend validates, merges and canary-checks it).
+
+on:
+  schedule:
+    - cron: '41 4 * * 0'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: >-
+          Test-only: query the first N companies. A limited run publishes nothing.
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: news-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install pandas==2.2.2 requests==2.34.2
+
+      - name: Seed from the news the site serves now
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          gh api "repos/${OWNER}/dealscope-frontend/contents/data/news.json?ref=main" \
+            -H "Accept: application/vnd.github.raw" > data/frontend/news.json
+          python -c "import json; assert len(json.load(open('data/frontend/news.json'))) > 1000"
+
+      - name: Refresh news and filings
+        env:
+          LIMIT: ${{ github.event.inputs.limit }}
+        run: |
+          ARGS=(--filings --news --refresh)
+          if [[ -n "$LIMIT" ]]; then ARGS+=(--limit "$LIMIT"); fi
+          python scripts/export_news_and_filings.py "${ARGS[@]}"
+
+      - name: Require frontend git credentials
+        if: ${{ github.event.inputs.limit == '' }}
+        env:
+          DEALSCOPE_APP_ID: ${{ vars.DEALSCOPE_APP_ID }}
+          DEALSCOPE_APP_PRIVATE_KEY: ${{ secrets.DEALSCOPE_APP_PRIVATE_KEY }}
+          FRONTEND_DEPLOY_KEY: ${{ secrets.FRONTEND_DEPLOY_KEY }}
+        run: bash .github/scripts/require_frontend_credentials.sh
+
+      # Minted only now: an installation token lasts an hour, the pull takes longer.
+      - name: Mint short-lived GitHub App token
+        if: ${{ github.event.inputs.limit == '' && vars.DEALSCOPE_APP_ID != '' }}
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ vars.DEALSCOPE_APP_ID }}
+          private-key: ${{ secrets.DEALSCOPE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: dealscope-frontend
+
+      - name: Checkout dealscope-frontend (GitHub App)
+        if: ${{ github.event.inputs.limit == '' && vars.DEALSCOPE_APP_ID != '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/dealscope-frontend
+          path: dealscope-frontend
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: true
+
+      - name: Checkout dealscope-frontend (deploy key)
+        if: ${{ github.event.inputs.limit == '' && vars.DEALSCOPE_APP_ID == '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/dealscope-frontend
+          path: dealscope-frontend
+          ssh-key: ${{ secrets.FRONTEND_DEPLOY_KEY }}
+          persist-credentials: true
+
+      - name: Push news branch (never main, never force)
+        if: ${{ github.event.inputs.limit == '' }}
+        id: frontend_push
+        env:
+          PUBLISH_ONLY: news.json
+        run: |
+          # The release guard compares dates; news carries none, so compare the site with itself.
+          cp dealscope-frontend/data/dataset-meta.json data/frontend/dataset-meta.json
+          bash .github/scripts/push_frontend_branch.sh \
+            dealscope-frontend \
+            "promote/news-${{ github.run_id }}-${{ github.run_attempt }}" \
+            "News refresh: sync from dealscope backend (${{ github.run_id }})"
+
+      - name: Wait until the frontend validates and merges
+        if: ${{ github.event.inputs.limit == '' && steps.frontend_push.outputs.changed == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/wait_for_frontend_pr.sh "promote/news-${{ github.run_id }}-${{ github.run_attempt }}" MERGED 120
+
+      - name: Report failure
+        if: failure()
+        env:
+          HEALTHCHECK_KIND: news
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python .github/scripts/healthcheck_ping.py failure
+
+      - name: Report success
+        if: success()
+        env:
+          HEALTHCHECK_KIND: news
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python .github/scripts/healthcheck_ping.py success

@@ -25,9 +25,12 @@ link}], news[{headline,source,date,link}]), keyed by ticker -- so no frontend
 change is needed, only real data.
 
 Run from the repo root:
-    python3 export_news_and_filings.py --filings            # fast, whole universe
-    python3 export_news_and_filings.py --news [--limit N]   # slow, resumable
-    python3 export_news_and_filings.py --filings --news     # both
+    python3 scripts/export_news_and_filings.py --filings            # fast, whole universe
+    python3 scripts/export_news_and_filings.py --news [--limit N]   # only companies with none yet
+    python3 scripts/export_news_and_filings.py --filings --news --refresh   # what the weekly job runs
+
+--refresh re-queries companies that already have news. Without it news.json
+was write-once: nothing was updated between 20 July and November 2026.
 """
 
 import argparse
@@ -58,6 +61,7 @@ MAX_BSE = 6
 MAX_NEWS = 6
 
 NEWS_DELAY_SECONDS = 1.5
+NEWS_ERROR_LIMIT = 0.30  # above this the source is down or blocking: go red
 NEWS_SAVE_EVERY = 25  # flush to disk this often so progress survives a kill
 
 
@@ -71,6 +75,32 @@ def _fmt_date(raw):
 def _sort_key(item):
     dt = parse_pub_date(item.get("pub_date", ""))
     return dt.timestamp() if dt else 0.0
+
+
+def normalise_day(value):
+    """Both stored formats ("2026-07-20", "29-Jun-2026 20:53") -> YYYY-MM-DD."""
+    text = str(value or "")
+    for fmt, size in (("%Y-%m-%d", 10), ("%d-%b-%Y", 11)):
+        try:
+            return datetime.strptime(text[:size], fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return text
+
+
+def merge_items(fresh, existing, cap):
+    """Newest first, de-duplicated. An empty fetch never wipes what we have:
+    the NSE feeds only reach back a few days."""
+    seen, merged = set(), []
+    for item in [*fresh, *existing]:
+        link = item.get("link") or ""
+        text = (item.get("headline") or item.get("title") or "").strip().lower()
+        if not link.startswith("https://") or link in seen or (text and text in seen):
+            continue
+        seen.update(k for k in (link, text) if k)
+        merged.append({**item, "date": normalise_day(item.get("date"))})
+    merged.sort(key=lambda it: it["date"] if it["date"][:4].isdigit() else "", reverse=True)
+    return merged[:cap]
 
 
 def load_existing():
@@ -110,7 +140,7 @@ def build_filings(df, payload):
         entry = entry_for(payload, ticker)
 
         hits = sorted(match_filings_to_company(nse_items, name), key=_sort_key, reverse=True)
-        entry["filings"] = [
+        fresh_filings = [
             {
                 "category": h.get("category") or "General announcement",
                 "date": _fmt_date(h.get("pub_date")),
@@ -119,6 +149,7 @@ def build_filings(df, payload):
             for h in hits[:MAX_FILINGS]
             if h.get("link")
         ]
+        entry["filings"] = merge_items(fresh_filings, entry.get("filings", []), MAX_FILINGS)
         if entry["filings"]:
             matched_nse += 1
 
@@ -131,7 +162,7 @@ def build_filings(df, payload):
         # companies correctly get an empty list and the tear sheet's existing
         # "No recent notices found" state renders honestly.
         bse_hits = sorted(match_filings_to_company(bse_items, name), key=_sort_key, reverse=True)
-        entry["bseNotices"] = [
+        fresh_notices = [
             {
                 "title": h.get("title") or "",
                 "date": _fmt_date(h.get("pub_date")),
@@ -140,6 +171,7 @@ def build_filings(df, payload):
             for h in bse_hits[:MAX_BSE]
             if h.get("link")
         ]
+        entry["bseNotices"] = merge_items(fresh_notices, entry.get("bseNotices", []), MAX_BSE)
         if entry["bseNotices"]:
             matched_bse += 1
 
@@ -149,27 +181,30 @@ def build_filings(df, payload):
     return payload
 
 
-def build_news(df, payload, limit=None):
+def build_news(df, payload, limit=None, refresh=False):
     """One Google News query per company -- paced, resumable, log-and-continue."""
     todo = [
         (row["symbol"], row["name"])
         for _, row in df.iterrows()
-        if not payload.get(row["symbol"], {}).get("news")
+        if refresh or not payload.get(row["symbol"], {}).get("news")
     ]
     if limit:
         todo = todo[:limit]
-    print(f"\n{len(todo)} companies still need news "
-          f"(already have it: {len(df) - len(todo)}).")
+    print(f"\n{len(todo)} companies to query{' (refresh)' if refresh else ''} of {len(df)}.")
 
-    ok = failed = 0
+    ok = failed = errored = 0
     for i, (ticker, name) in enumerate(todo, 1):
         try:
-            items, error = fetch_company_news(name, max_items=MAX_NEWS)
+            items, error = fetch_company_news(name, max_items=MAX_NEWS * 3)
         except Exception as exc:
             items, error = [], f"{type(exc).__name__}: {str(exc)[:120]}"
 
+        if error:
+            errored += 1
         if items:
-            entry_for(payload, ticker)["news"] = [
+            # Query with more than we keep: RSS orders by relevance, not date.
+            entry = entry_for(payload, ticker)
+            fresh_news = [
                 {
                     "headline": it.get("title") or "",
                     "source": it.get("source") or "Unknown source",
@@ -179,6 +214,7 @@ def build_news(df, payload, limit=None):
                 for it in items
                 if it.get("link")
             ]
+            entry["news"] = merge_items(fresh_news, entry.get("news", []), MAX_NEWS)
             ok += 1
         else:
             # Leave news empty; the tear sheet's honest "No recent coverage
@@ -195,6 +231,8 @@ def build_news(df, payload, limit=None):
 
     save(payload)
     print(f"\nNews done this run: {ok} fetched, {failed} returned nothing.")
+    if todo and errored / len(todo) > NEWS_ERROR_LIMIT:
+        raise SystemExit(f"::error::News source is failing: {errored}/{len(todo)} requests errored")
     return payload
 
 
@@ -203,6 +241,7 @@ def main():
     parser.add_argument("--filings", action="store_true", help="rebuild NSE filings + BSE notices")
     parser.add_argument("--news", action="store_true", help="fetch per-company Google News")
     parser.add_argument("--limit", type=int, default=None, help="news: cap companies this run")
+    parser.add_argument("--refresh", action="store_true", help="news: re-query companies that already have news")
     args = parser.parse_args()
     if not args.filings and not args.news:
         parser.error("pass --filings and/or --news")
@@ -215,7 +254,7 @@ def main():
     if args.filings:
         payload = build_filings(df, payload)
     if args.news:
-        payload = build_news(df, payload, limit=args.limit)
+        payload = build_news(df, payload, limit=args.limit, refresh=args.refresh)
 
     with_f = sum(1 for v in payload.values() if v.get("filings"))
     with_b = sum(1 for v in payload.values() if v.get("bseNotices"))

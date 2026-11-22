@@ -24,6 +24,8 @@ ISSUE_TITLE = {
     "daily": "[DealScope] Daily price refresh failed",
     "quarterly": "[DealScope] Quarterly fundamentals refresh failed",
     "promote": "[DealScope] Snapshot promotion failed",
+    # Needs its own title: unknown kinds share (and would close) the daily issue.
+    "news": "[DealScope] News refresh failed",
 }
 def request(method, url, token, body=None, _redirects=0):
     """GitHub API call. Follow 301/302/307/308 even for POST/PATCH.
