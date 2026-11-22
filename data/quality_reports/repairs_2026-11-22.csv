@@ -1,0 +1,132 @@
+symbol,field,before,after,reason,source
+AAVAS,current_ratio,630.789,,current_ratio=630.789 outside 0..100,null
+AAVAS,quick_ratio,630.789,,quick_ratio=630.789 outside 0..100,null
+ACEINTEG,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+AKCAPIT,current_ratio,320.45,,current_ratio=320.45 outside 0..100,null
+APTUS,current_ratio,261.963,,current_ratio=261.963 outside 0..100,null
+APTUS,quick_ratio,260.078,,quick_ratio=260.078 outside 0..100,null
+ARMANFIN,current_ratio,201.892,,current_ratio=201.892 outside 0..100,null
+ARMANFIN,quick_ratio,197.104,,quick_ratio=197.104 outside 0..100,null
+BAJAJHFL,current_ratio,311.158,,current_ratio=311.158 outside 0..100,null
+BAJAJHFL,quick_ratio,309.975,,quick_ratio=309.975 outside 0..100,null
+BFINVEST,current_ratio,188.477,41.511,current_ratio=188.477 outside 0..100,live
+BFINVEST,quick_ratio,183.365,40.355,quick_ratio=183.365 outside 0..100,live
+BOHRAIND,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+CHOLAFIN,current_ratio,134.744,2.917,current_ratio=134.744 outside 0..100,live
+CHOLAFIN,quick_ratio,134.244,2.836,quick_ratio=134.244 outside 0..100,live
+CREDITACC,current_ratio,142.868,2.289,current_ratio=142.868 outside 0..100,live
+CREDITACC,quick_ratio,142.743,2.27,quick_ratio=142.743 outside 0..100,live
+CREST,current_ratio,182.314,,current_ratio=182.314 outside 0..100,null
+DECNGOLD,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+ELCIDIN,beta,-20488.088,,beta=-20488.1 outside -10..10,null
+ESSARSHPNG,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+FEDFINA,current_ratio,576.502,,current_ratio=576.502 outside 0..100,null
+FEDFINA,quick_ratio,576.502,,quick_ratio=576.502 outside 0..100,null
+FIVESTAR,current_ratio,152.498,5.569,current_ratio=152.498 outside 0..100,live
+FIVESTAR,quick_ratio,151.545,5.551,quick_ratio=151.545 outside 0..100,live
+FUSION,current_ratio,228.327,2.327,current_ratio=228.327 outside 0..100,live
+FUSION,quick_ratio,228.032,2.289,quick_ratio=228.032 outside 0..100,live
+GICHSGFIN,current_ratio,334.861,3.263,current_ratio=334.861 outside 0..100,live
+GICHSGFIN,quick_ratio,334.763,3.26,quick_ratio=334.763 outside 0..100,live
+GLOBAL,total_debt,-38000.0,0.0,total_debt=-38000 outside >= 0,live
+GLOBE,insider_holding_pct,133.324,,insider_holding_pct=133.324 outside 0..100,null
+GOCLCORP,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+GRANDOAK,current_ratio,389088.66,,current_ratio=389089 outside 0..100,null
+GRANDOAK,quick_ratio,360951.0,2.556,quick_ratio=360951 outside 0..100,live
+GVPTECH,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+HDBFS,current_ratio,301.372,30.738,current_ratio=301.372 outside 0..100,live
+HDBFS,quick_ratio,301.239,30.582,quick_ratio=301.239 outside 0..100,live
+HEMIPROP,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+HOMEFIRST,current_ratio,224.104,6.421,current_ratio=224.104 outside 0..100,live
+HOMEFIRST,quick_ratio,220.519,6.244,quick_ratio=220.519 outside 0..100,live
+HUDCO,current_ratio,731.566,,current_ratio=731.566 outside 0..100,null
+HUDCO,quick_ratio,727.74,,quick_ratio=727.74 outside 0..100,null
+IIFL,current_ratio,141.045,3.471,current_ratio=141.045 outside 0..100,live
+IIFL,quick_ratio,137.492,3.331,quick_ratio=137.492 outside 0..100,live
+IITL,current_ratio,709.299,,current_ratio=709.299 outside 0..100,null
+INDOSTAR,current_ratio,291.413,,current_ratio=291.413 outside 0..100,null
+INDOSTAR,quick_ratio,290.002,,quick_ratio=290.002 outside 0..100,null
+IREDA,current_ratio,932.735,89.346,current_ratio=932.735 outside 0..100,live
+IREDA,quick_ratio,932.43,89.346,quick_ratio=932.43 outside 0..100,live
+JIOFIN,current_ratio,113.494,,current_ratio=113.494 outside 0..100,null
+JIOFIN,quick_ratio,111.854,,quick_ratio=111.854 outside 0..100,null
+JSWHL,current_ratio,468.317,,current_ratio=468.317 outside 0..100,null
+LANDSMILL,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+MANAPPURAM,current_ratio,316.547,94.116,current_ratio=316.547 outside 0..100,live
+MANAPPURAM,quick_ratio,316.351,93.965,quick_ratio=316.351 outside 0..100,live
+MASFIN,current_ratio,106.918,,current_ratio=106.918 outside 0..100,null
+MASFIN,quick_ratio,103.725,,quick_ratio=103.725 outside 0..100,null
+MMTC,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+MUTHOOTFIN,current_ratio,110.257,,current_ratio=110.257 outside 0..100,null
+MUTHOOTFIN,quick_ratio,110.257,,quick_ratio=110.257 outside 0..100,null
+MUTHOOTMF,current_ratio,396.367,,current_ratio=396.367 outside 0..100,null
+MUTHOOTMF,quick_ratio,389.839,,quick_ratio=389.839 outside 0..100,null
+NATIONSTD,current_ratio,100.705,96.907,current_ratio=100.705 outside 0..100,live
+NIVABUPA,current_ratio,4538.708,2.511,current_ratio=4538.71 outside 0..100,live
+NIVABUPA,quick_ratio,677.917,0.325,quick_ratio=677.917 outside 0..100,live
+PARASPETRO,current_ratio,406.196,,current_ratio=406.196 outside 0..100,null
+PFS,current_ratio,372.018,,current_ratio=372.018 outside 0..100,null
+PFS,quick_ratio,372.018,,quick_ratio=372.018 outside 0..100,null
+PIRAMALFIN,current_ratio,103.882,48.573,current_ratio=103.882 outside 0..100,live
+PIRAMALFIN,quick_ratio,101.915,46.733,quick_ratio=101.915 outside 0..100,live
+RECLTD,current_ratio,401.508,,current_ratio=401.508 outside 0..100,null
+RECLTD,quick_ratio,401.451,,quick_ratio=401.451 outside 0..100,null
+REPCOHOME,current_ratio,4113.615,,current_ratio=4113.61 outside 0..100,null
+REPCOHOME,quick_ratio,4061.363,,quick_ratio=4061.36 outside 0..100,null
+SAMMAANCAP,revenue,-12612299776.0,,revenue=-1.26123e+10 outside >= 0,null
+SAMMAANCAP,revenue_growth_pct,-24.5,,derived from invalid revenue,null
+SARLAPOLY,insider_holding_pct,126.384,,insider_holding_pct=126.384 outside 0..100,null
+SATIN,current_ratio,226.298,,current_ratio=226.298 outside 0..100,null
+SATIN,quick_ratio,225.697,,quick_ratio=225.697 outside 0..100,null
+SBFC,current_ratio,399.924,4.463,current_ratio=399.924 outside 0..100,live
+SBFC,quick_ratio,399.924,4.39,quick_ratio=399.924 outside 0..100,live
+SPANDANA,current_ratio,295.226,,current_ratio=295.226 outside 0..100,null
+SPANDANA,quick_ratio,295.226,,quick_ratio=295.226 outside 0..100,null
+STCINDIA,revenue,-231600992.0,,revenue=-2.31601e+08 outside >= 0,null
+STEL,current_ratio,455.631,29.374,current_ratio=455.631 outside 0..100,live
+STEL,quick_ratio,450.047,28.461,quick_ratio=450.047 outside 0..100,live
+SUVEN,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+TARAPUR,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+TATACAP,current_ratio,104.95,,current_ratio=104.95 outside 0..100,null
+TATACAP,quick_ratio,104.857,,quick_ratio=104.857 outside 0..100,null
+TATAINVEST,current_ratio,437.673,,current_ratio=437.673 outside 0..100,null
+TATAINVEST,quick_ratio,437.463,,quick_ratio=437.463 outside 0..100,null
+TFCILTD,current_ratio,920.752,,current_ratio=920.752 outside 0..100,null
+TFCILTD,quick_ratio,920.752,,quick_ratio=920.752 outside 0..100,null
+TNTELE,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+TREEHOUSE,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+TRU,revenue,-347617984.0,,revenue=-3.47618e+08 outside >= 0,null
+UGROCAP,current_ratio,279.353,2.968,current_ratio=279.353 outside 0..100,live
+UGROCAP,quick_ratio,270.715,2.777,quick_ratio=270.715 outside 0..100,live
+AFIL,current_ratio,107.932,4.19,current_ratio=107.932 outside 0..100,live
+AFIL,quick_ratio,107.932,3.79,quick_ratio=107.932 outside 0..100,live
+BGRENERGY,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+CEREBRAINT,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+COMPINFO,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+CPCAP,current_ratio,1447.403,,current_ratio=1447.4 outside 0..100,null
+CPCAP,quick_ratio,514.053,5.437,quick_ratio=514.053 outside 0..100,live
+DHARAN,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+EUROTEXIND,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+FLEXITUFF,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+GLFL,revenue,-36000.0,4253000.0,revenue=-36000 outside >= 0,live
+GLFL,ebitda,-3896000.0,-3820500.0,revenue=-36000 outside >= 0,live
+GLFL,ebitda_margin_pct,0.0,-89.83070773571596,revenue=-36000 outside >= 0,live
+GLFL,revenue_growth_pct,1.9,,revenue=-36000 outside >= 0,live
+GVKPIL,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+KAUSHALYA,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+MEP,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+NECLIFE,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+NEUEON,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+ORTINGLOBE,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+PREMIER,ebitda_margin_pct,0.0,-30.042583260501704,margin ~0 with material ebitda,recomputed
+RHFL,revenue,-6778000.0,,revenue=-6.778e+06 outside >= 0,null
+ROLLT,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+SANWARIA,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+SEYAIND,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+SHYAMTEL,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+SVPGLOB,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
+TCIFINANCE,revenue,-10812000.0,,revenue=-1.0812e+07 outside >= 0,null
+WELINV,current_ratio,124.468,12.245,current_ratio=124.468 outside 0..100,live
+WELINV,quick_ratio,124.354,11.345,quick_ratio=124.354 outside 0..100,live
+WINSOME,beta,-10.118,-9.876,beta=-10.118 outside -10..10,live
+WINSOME,ebitda_margin_pct,0.0,,margin ~0 with material ebitda,null
