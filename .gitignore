@@ -5,6 +5,9 @@
 *_api_key*
 *apikey*
 
+.streamlit/secrets.toml
+*.pem
+*.key
 # python
 __pycache__/
 *.pyc

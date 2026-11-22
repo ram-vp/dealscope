@@ -22,10 +22,14 @@ if [[ "$EXPECT" != "OPEN" && "$EXPECT" != "MERGED" ]]; then
 fi
 
 CLOSED_RETRIES=0
+# Both repos are public: anyone can open a fork PR whose branch has this name,
+# or comment on the real one. Only same-repo PRs and the bot's own comments count.
+PR_FILTER='[.[] | select(.isCrossRepository | not)] | .[0]'
+MERGE_NOTE='.comments[]? | select(.author.login == "github-actions") | .body | select(type == "string" and (startswith("Squash-merged onto main as Ram VP") or startswith("Already on main.")))'
 
 for i in $(seq 1 "$ATTEMPTS"); do
   STATE=""
-  if STATE=$(gh pr list --repo "$REPO" --head "$BRANCH" --state all --json state --jq '.[0].state // empty'); then
+  if STATE=$(gh pr list --repo "$REPO" --head "$BRANCH" --state all --json state,isCrossRepository --jq "${PR_FILTER} | .state // empty"); then
     if [[ -n "$STATE" ]]; then
       echo "Frontend PR $BRANCH is $STATE (attempt $i/${ATTEMPTS})"
       if [[ "$STATE" == "$EXPECT" ]]; then
@@ -35,7 +39,7 @@ for i in $(seq 1 "$ATTEMPTS"); do
         CLOSED_RETRIES=0
       fi
       if [[ "$EXPECT" == "MERGED" && "$STATE" == "CLOSED" ]]; then
-        COMMENT=$(gh pr list --repo "$REPO" --head "$BRANCH" --state all --json state,comments --jq '[ .[0].comments[]?.body? | select(type == "string" and (startswith("Squash-merged onto main as Ram VP") or startswith("Already on main."))) ] | first // empty' 2>/dev/null || true)
+        COMMENT=$(gh pr list --repo "$REPO" --head "$BRANCH" --state all --json state,isCrossRepository,comments --jq "${PR_FILTER} | [${MERGE_NOTE}] | first // empty" 2>/dev/null || true)
         if [[ -n "$COMMENT" ]]; then
           echo "Frontend PR $BRANCH was merged: ${COMMENT%%$'\n'*}"
           exit 0

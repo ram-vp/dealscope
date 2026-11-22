@@ -210,10 +210,16 @@ def execute(action):
     print(f"executed: {action}")
 
 
+def own_issues(issues):
+    """Anyone can open an issue with our title. Only act on ones we opened."""
+    ours = {"app/github-actions", "github-actions"}
+    return [i for i in issues if i.get("title") == ISSUE_TITLE and (i.get("author") or {}).get("login") in ours]
+
+
 def sync_issue(problems):
     out = gh("issue", "list", "--repo", BACKEND, "--state", "open", "--search", f'"{ISSUE_TITLE}" in:title',
-             "--json", "number,title")
-    existing = [i for i in json.loads(out) if i["title"] == ISSUE_TITLE]
+             "--json", "number,title,author")
+    existing = own_issues(json.loads(out))
     body = "\n".join(f"- {p}" for p in problems)
     run_url = f"{os.environ.get('GITHUB_SERVER_URL', 'https://github.com')}/{BACKEND}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}"
     if problems and existing:

@@ -22,6 +22,8 @@ as zero.
 
 import pandas as pd
 
+from src.safety import bounded_number
+
 LEVERAGE_METRIC = "leverage_ratio"
 LEGACY_LEVERAGE_WEIGHT_KEY = "total_debt"
 ND_EBITDA_KIND = "nd_ebitda"
@@ -107,7 +109,8 @@ def _resolved_weights(weights):
     raw = dict(weights or {})
     if LEVERAGE_METRIC not in raw and LEGACY_LEVERAGE_WEIGHT_KEY in raw:
         raw[LEVERAGE_METRIC] = raw[LEGACY_LEVERAGE_WEIGHT_KEY]
-    resolved = {m: float(raw.get(m, 0)) for m in METRICS}
+    # Weights can come from a URL: negative, NaN or huge ones would push scores outside 0-100.
+    resolved = {m: float(bounded_number(raw.get(m, 0), 0, 0, 100)) for m in METRICS}
     if sum(resolved.values()) == 0:
         resolved = {m: 1.0 for m in METRICS}
     return resolved

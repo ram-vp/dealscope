@@ -48,7 +48,8 @@ def request(method, url, token, body=None, _redirects=0):
     except urllib.error.HTTPError as exc:
         if exc.code in (301, 302, 307, 308) and _redirects < 5:
             loc = exc.headers.get("Location")
-            if loc:
+            # The bearer token goes with the request, so only to GitHub's API.
+            if loc and loc.startswith("https://api.github.com/"):
                 return request(method, loc, token, body, _redirects + 1)
         raise
 
@@ -62,7 +63,7 @@ def write_summary(action, kind, ping_url, extra):
         f"## Refresh monitor — {kind} — **{action.upper()}**",
         "",
         f"- Time: {now}",
-        f"- Healthchecks ping: {'configured (' + ping_url + ')' if ping_url else 'NOT CONFIGURED'}",
+        f"- Healthchecks ping: {'configured' if ping_url else 'NOT CONFIGURED'}",
         extra,
         "",
     ]
@@ -85,7 +86,12 @@ def find_open_issue(repo, token, title):
     url = f"https://api.github.com/repos/{repo}/issues?{q}"
     issues = request("GET", url, token)
     for issue in issues:
-        if issue.get("title") == title and "pull_request" not in issue:
+        if (
+            issue.get("title") == title
+            and "pull_request" not in issue
+            # Public repo: anyone can open an issue with this title.
+            and (issue.get("user") or {}).get("login") == "github-actions[bot]"
+        ):
             return issue
     return None
 

@@ -33,6 +33,7 @@ from src.logic.scoring import score_companies, METRICS, PERCENTILE_COLUMNS, LEVE
 from src.logic.valuation import valuation_range
 from src.data.export_checks import validate_export
 from src.data.sanitize import sanitize
+from src.safety import safe_ai_text
 from compute_filter_bands import main as compute_filter_bands
 from compute_sector_bands import main as compute_sector_bands
 
@@ -195,9 +196,10 @@ def main():
             "negative_revenue_flag": bool(r.get("negative_revenue_flag", False)),
         })
         narrative = {}
-        about = content.get("about")
-        why = content.get("why_this_score")
-        rationale = content.get("rationale")
+        # Model output is untrusted, and the cache is a committed file.
+        about = safe_ai_text(content.get("about"))
+        why = safe_ai_text(content.get("why_this_score"))
+        rationale = safe_ai_text(content.get("rationale"))
         if about:
             narrative["about"] = about
         if why:
